@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>مغامرة الأبطال</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        setLogLevel('debug');
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+        window.firebaseInitialized = false;
+        
+        const initFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        window.firebaseInitialized = true;
+                    } else {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser.uid;
+                            window.firebaseInitialized = true;
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+            }
+        };
+
+        window.firebase = {
+            init: initFirebase,
+            db: () => db,
+            auth: () => auth,
+            getUserId: () => userId
+        };
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #0d1117;
+            touch-action: none;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            background: linear-gradient(#0d1117, #1f2937);
+            border: 4px solid #4b5563;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: #e5e7eb;
+            user-select: none;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .level-button, .start-game-button, .next-level-button, .shop-button, .buy-button, .equip-button, .back-button, .pause-button, .in-game-shop-button {
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        .level-button:hover, .start-game-button:hover, .next-level-button:hover, .shop-button:hover, .buy-button:hover, .equip-button:hover, .back-button:hover, .pause-button:hover, .in-game-shop-button:hover {
+            transform: scale(1.05);
+        }
+
+        .shop-item {
+            background-color: #1f2937;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        .shop-item.equipped {
+            border-color: #22c55e;
+        }
+        .shop-item h3 {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        
+        #inGameUI {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 5;
+        }
+
+        .pause-button {
+            background-color: rgba(75, 85, 99, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center h-screen w-screen">
+
+    <!-- Game UI Overlay -->
+    <div id="uiOverlay" class="game-ui p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
+        <h1 class="text-4xl font-extrabold mb-4">مغامرة الأبطال</h1>
+        <p id="message" class="text-lg">اضغط واسحب للتحرك في أي اتجاه وإطلاق النار!</p>
+        <button id="startButton" class="start-game-button mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            ابدأ اللعب
+        </button>
+        <button id="shopButton" class="shop-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            المتجر
+        </button>
+        <button id="levelSelectButton" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            اختيار مرحلة
+        </button>
+    </div>
+
+    <!-- Shop UI -->
+    <div id="shopOverlay" class="game-ui hidden w-80 p-6 rounded-2xl bg-gray-800 bg-opacity-90 shadow-2xl transition-opacity duration-300">
+        <h2 class="text-3xl font-bold mb-4">المتجر</h2>
+        <p id="moneyDisplay" class="text-lg mb-4">أموالك: 0💰</p>
+        <div id="shopItems" class="w-full"></div>
+        <button id="shopBackButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            رجوع
+        </button>
+    </div>
+
+    <!-- Level Selection UI -->
+    <div id="levelSelectOverlay" class="game-ui hidden p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
+        <h2 class="text-3xl font-bold mb-4">اختر البطل</h2>
+        <div id="levelGrid" class="grid grid-cols-3 gap-4"></div>
+        <button id="backButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            رجوع
+        </button>
+    </div>
+
+    <!-- Pause UI -->
+    <div id="pauseOverlay" class="game-ui hidden p-6 rounded-2xl bg-gray-800 bg-opacity-90 shadow-2xl">
+        <h2 class="text-3xl font-bold mb-4">توقف مؤقت</h2>
+        <button id="resumeButton" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            إكمال
+        </button>
+        <button id="inGameShopButton" class="in-game-shop-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            المتجر
+        </button>
+        <button id="exitButton" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            العودة للقائمة الرئيسية
+        </button>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- In-Game UI -->
+    <div id="inGameUI" class="hidden">
+        <button id="pauseButton" class="pause-button">توقف مؤقت</button>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script type="module">
+        import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const uiOverlay = document.getElementById('uiOverlay');
+        const startButton = document.getElementById('startButton');
+        const shopButton = document.getElementById('shopButton');
+        const shopOverlay = document.getElementById('shopOverlay');
+        const shopBackButton = document.getElementById('shopBackButton');
+        const moneyDisplay = document.getElementById('moneyDisplay');
+        const shopItems = document.getElementById('shopItems');
+        const levelSelectButton = document.getElementById('levelSelectButton');
+        const levelSelectOverlay = document.getElementById('levelSelectOverlay');
+        const levelGrid = document.getElementById('levelGrid');
+        const backButton = document.getElementById('backButton');
+        const messageDisplay = document.getElementById('message');
+        const inGameUI = document.getElementById('inGameUI');
+        const pauseButton = document.getElementById('pauseButton');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        const resumeButton = document.getElementById('resumeButton');
+        const inGameShopButton = document.getElementById('inGameShopButton');
+        const exitButton = document.getElementById('exitButton');
+
+        let isGameRunning = false;
+        let isPaused = false;
+        let score = 0;
+        let money = 0;
+        let currentLevel = 1;
+        let projectiles = [];
+        let enemies = [];
+        let enemyProjectiles = []; // مصفوفة لتخزين قذائف الأعداء
+        let boss = null;
+        let powerup = null;
+        let isPowerupActive = false;
+        let powerupEndTime = 0;
+        let targetsToDestroy = 20 + (currentLevel * 5); 
+        let lastEnemySpawn = Date.now();
+        let lastTouchTime = 0;
+        let shieldActive = false;
+        
+        let ownedShips = ['ship1'];
+        let equippedShip = 'ship1';
+
+        const ships = {
+            ship1: { name: 'المركبة الأولى', price: 0, image: '🚀', projectileCount: 2, projectileSpeed: 10 },
+            ship2: { name: 'مركبة الصقر', price: 500, image: '🦅', projectileCount: 3, projectileSpeed: 15 },
+            ship3: { name: 'مركبة التنين', price: 1500, image: '🐉', projectileCount: 1, projectileSpeed: 25 },
+        };
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            size: 30,
+            image: ships[equippedShip].image,
+        };
+        
+        const saveUserData = async () => {
+            if (!window.firebaseInitialized || !window.firebase.getUserId()) return;
+            const userDocRef = doc(window.firebase.db(), `artifacts/${appId}/users/${window.firebase.getUserId()}/gameData/userStats`);
+            try {
+                await setDoc(userDocRef, { money, ownedShips, equippedShip }, { merge: true });
+            } catch (e) {
+                console.error("Error saving user data:", e);
+            }
+        };
+
+        const loadUserData = () => {
+            if (!window.firebaseInitialized || !window.firebase.getUserId()) {
+                setTimeout(loadUserData, 1000); // Retry until Firebase is ready
+                return;
+            }
+            const userDocRef = doc(window.firebase.db(), `artifacts/${appId}/users/${window.firebase.getUserId()}/gameData/userStats`);
+            onSnapshot(userDocRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    money = data.money || 0;
+                    ownedShips = data.ownedShips || ['ship1'];
+                    equippedShip = data.equippedShip || 'ship1';
+                    moneyDisplay.textContent = `أموالك: ${money}💰`;
+                    updatePlayerShip();
+                    renderShop();
+                } else {
+                    saveUserData(); // Create initial data
+                }
+            });
+        };
+
+        const updatePlayerShip = () => {
+            player.image = ships[equippedShip].image;
+        };
+
+        window.firebase.init().then(loadUserData);
+
+        const laserSynth = new Tone.Synth().toDestination();
+        const explosionSynth = new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.2 } }).toDestination();
+        const bossLaserSynth = new Tone.Synth({ oscillator: { type: "square" }}).toDestination();
+        const enemyLaserSynth = new Tone.Synth({ oscillator: { type: "triangle" }}).toDestination();
+        const powerupSynth = new Tone.Synth().toDestination();
+        const backgroundMusic = new Tone.PolySynth().toDestination();
+        let musicLoop;
+        const musicNotes = ["C4", "E4", "G4", "A4"];
+        let musicIndex = 0;
+
+        function playBackgroundMusic() {
+            if (musicLoop) musicLoop.cancel();
+            musicLoop = new Tone.Loop(time => {
+                const note = musicNotes[musicIndex % musicNotes.length];
+                backgroundMusic.triggerAttackRelease(note, "8n", time);
+                musicIndex++;
+            }, "4n").start(0);
+        }
+
+        class Projectile {
+            constructor(x, y, speed, size, color) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = speed;
+                this.color = color;
+                laserSynth.triggerAttackRelease("C5", "8n");
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.y -= this.speed;
+            }
+        }
+        
+        class EnemyProjectile {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = 5;
+                this.speed = 4;
+                this.color = '#ff0000';
+                enemyLaserSynth.triggerAttackRelease("E3", "8n");
+                // Calculate direction towards player
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                this.vx = (dx / dist) * this.speed;
+                this.vy = (dy / dist) * this.speed;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+        }
+        
+        class AITarget {
+            constructor(x, y, size, speed, image) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = speed;
+                this.image = image;
+                this.hitpoints = 3;
+            }
+            draw() {
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.image, this.x, this.y);
+            }
+            update() {
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 1) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+            }
+        }
+        
+        class Target {
+            constructor(x, y, size, speed, image) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = speed;
+                this.image = image;
+                this.hitpoints = 2;
+                this.lastShotTime = Date.now();
+                this.fireRate = 2000 + Math.random() * 2000;
+            }
+            draw() {
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.image, this.x, this.y);
+            }
+            update() {
+                this.y += this.speed;
+                // Add a chance for this enemy type to shoot
+                if (Math.random() < 0.005 && Date.now() - this.lastShotTime > this.fireRate) {
+                    enemyProjectiles.push(new EnemyProjectile(this.x, this.y));
+                    this.lastShotTime = Date.now();
+                }
+            }
+        }
+        
+        class Powerup {
+            constructor(x, y, image, type) {
+                this.x = x;
+                this.y = y;
+                this.size = 25;
+                this.speed = 3;
+                this.image = image;
+                this.type = type;
+            }
+            draw() {
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.image, this.x, this.y);
+            }
+            update() {
+                this.y += this.speed;
+            }
+        }
+
+        const heroes = [
+            { image: "🦸‍♂️", health: 300, speed: 2, attackRate: 60, projectileSpeed: 5 },
+            { image: "🦹‍♀️", health: 450, speed: 2.5, attackRate: 50, projectileSpeed: 6 },
+            { image: "🧙‍♂️", health: 600, speed: 3, attackRate: 45, projectileSpeed: 7 },
+            { image: "🧛‍♀️", health: 750, speed: 3.5, attackRate: 40, projectileSpeed: 8 },
+            { image: "🧟‍♂️", health: 900, speed: 4, attackRate: 35, projectileSpeed: 9 },
+            { image: "🧛‍♂️", health: 1050, speed: 4.5, attackRate: 30, projectileSpeed: 10 },
+            { image: "🧞‍♂️", health: 1200, speed: 5, attackRate: 25, projectileSpeed: 11 },
+            { image: "🧚‍♀️", health: 1350, speed: 5.5, attackRate: 20, projectileSpeed: 12 },
+            { image: "🧝‍♂️", health: 1500, speed: 6, attackRate: 15, projectileSpeed: 13 },
+            { image: "🧜‍♀️", health: 1800, speed: 6.5, attackRate: 10, projectileSpeed: 14 }
+        ];
+
+        class Boss {
+            constructor(type) {
+                this.x = canvas.width / 2;
+                this.y = 100;
+                this.size = 100;
+                this.health = type.health;
+                this.maxHealth = type.health;
+                this.speed = type.speed;
+                this.direction = 1;
+                this.image = type.image;
+                this.attackTimer = 0;
+                this.attackRate = type.attackRate;
+                this.projectileSpeed = type.projectileSpeed;
+            }
+            draw() {
+                ctx.font = `${this.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.image, this.x, this.y);
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x - this.size / 2, this.y + this.size / 2 + 10, this.size, 10);
+                ctx.fillStyle = 'green';
+                const healthWidth = (this.health / this.maxHealth) * this.size;
+                ctx.fillRect(this.x - this.size / 2, this.y + this.size / 2 + 10, healthWidth, 10);
+            }
+            update() {
+                this.x += (player.x > this.x) ? Math.min(this.speed, player.x - this.x) : Math.max(-this.speed, player.x - this.x);
+                this.attackTimer++;
+                if (this.attackTimer % this.attackRate === 0) {
+                    enemyProjectiles.push(new EnemyProjectile(this.x, this.y));
+                    bossLaserSynth.triggerAttackRelease("G2", "8n");
+                }
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (canvas.height / canvas.width > 16/9) {
+                canvas.style.width = '100vw';
+                canvas.style.height = 'calc(100vw / 9 * 16)';
+            } else {
+                canvas.style.height = '100vh';
+                canvas.style.width = 'calc(100vh / 16 * 9)';
+            }
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50;
+        }
+        
+        function handleInput(event) {
+            if (!isGameRunning || isPaused) return;
+            event.preventDefault();
+            
+            const touchX = event.touches ? event.touches[0].clientX : event.clientX;
+            const touchY = event.touches ? event.touches[0].clientY : event.clientY;
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            player.x = touchX - canvasRect.left;
+            player.y = touchY - canvasRect.top;
+            
+            const currentTime = Date.now();
+            const currentShip = ships[equippedShip];
+            if (currentTime - lastTouchTime > (isPowerupActive ? 100 : 200)) {
+                
+                for (let i = 0; i < currentShip.projectileCount; i++) {
+                    let offset = 0;
+                    if (currentShip.projectileCount > 1) {
+                         offset = -((currentShip.projectileCount - 1) * 10) / 2 + (i * 10);
+                    }
+                    projectiles.push(new Projectile(player.x + offset, player.y, currentShip.projectileSpeed, 5, '#ef4444'));
+                }
+                lastTouchTime = currentTime;
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            projectiles.forEach(p => p.draw());
+            enemies.forEach(e => e.draw());
+            enemyProjectiles.forEach(ep => ep.draw()); // رسم قذائف الأعداء
+            if (boss) boss.draw();
+            if (powerup) powerup.draw();
+            drawScore();
+            drawLevel();
+            drawMoney();
+            if (shieldActive) {
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.size + 10, 0, Math.PI * 2);
+                ctx.strokeStyle = '#4299e1';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        function drawPlayer() {
+            ctx.font = `${player.size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(player.image, player.x, player.y);
+        }
+
+        function drawScore() {
+            ctx.fillStyle = '#e5e7eb';
+            ctx.font = '2rem Cairo';
+            ctx.textAlign = 'left';
+            ctx.fillText(`النقاط: ${score}`, 20, 40);
+        }
+        
+        function drawMoney() {
+            ctx.fillStyle = '#e5e7eb';
+            ctx.font = '2rem Cairo';
+            ctx.textAlign = 'left';
+            ctx.fillText(`المال: ${money} 💰`, 20, 80);
+        }
+
+        function drawLevel() {
+            ctx.fillStyle = '#e5e7eb';
+            ctx.font = '2rem Cairo';
+            ctx.textAlign = 'right';
+            ctx.fillText(`المستوى: ${currentLevel}`, canvas.width - 20, 40);
+        }
+
+        function updateGame() {
+            if (isPowerupActive && Date.now() > powerupEndTime) {
+                isPowerupActive = false;
+            }
+
+            projectiles.forEach(p => p.update());
+            projectiles = projectiles.filter(p => p.y > 0);
+
+            enemies.forEach(e => e.update());
+            enemies = enemies.filter(e => e.y < canvas.height && e.y > -100);
+            
+            enemyProjectiles.forEach(ep => ep.update());
+            enemyProjectiles = enemyProjectiles.filter(ep => ep.y < canvas.height && ep.x > 0 && ep.x < canvas.width);
+            
+            if (powerup) {
+                powerup.update();
+                if (powerup.y > canvas.height) {
+                    powerup = null;
+                }
+            }
+            
+            checkCollisions();
+
+            if (boss) {
+                boss.update();
+            } else if (targetsToDestroy > 0) {
+                spawnEnemies();
+            } else if (targetsToDestroy <= 0 && enemies.length === 0) {
+                spawnBoss();
+            }
+        }
+        
+        function spawnEnemies() {
+            const now = Date.now();
+            if (now - lastEnemySpawn > 1500 && enemies.length < 5 && targetsToDestroy > 0) {
+                const size = Math.random() * 20 + 20;
+                const x = Math.random() * (canvas.width - size) + size / 2;
+                const y = -50;
+                const speed = 2 + (currentLevel * 0.2);
+                
+                // 50% chance to spawn a shooting enemy
+                if (Math.random() < 0.5) {
+                    enemies.push(new Target(x, y, size, speed, "👻"));
+                } else {
+                    enemies.push(new AITarget(x, y, size, speed + 1, "🧟"));
+                }
+                lastEnemySpawn = now;
+            }
+        }
+
+        function spawnBoss() {
+            let bossLevel = currentLevel;
+            if (bossLevel > 10) {
+                bossLevel = Math.floor(Math.random() * 10) + 1;
+            }
+            boss = new Boss(heroes[bossLevel - 1]);
+            messageDisplay.innerHTML = `زعيم المرحلة ${bossLevel}!`;
+            uiOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                uiOverlay.classList.add('hidden');
+                isGameRunning = true;
+                inGameUI.classList.remove('hidden');
+                requestAnimationFrame(gameLoop);
+            }, 2000);
+        }
+        
+        function checkCollisions() {
+            // Player vs Enemy
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const dx = player.x - e.x;
+                const dy = player.y - e.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < player.size / 2 + e.size / 2) {
+                    if (shieldActive) {
+                        shieldActive = false;
+                        enemies.splice(i, 1);
+                        explosionSynth.triggerAttackRelease("A3", "8n");
+                    } else {
+                        gameOver();
+                    }
+                    return;
+                }
+            }
+            
+            // Player vs Enemy Projectiles
+            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                const ep = enemyProjectiles[i];
+                const dx = player.x - ep.x;
+                const dy = player.y - ep.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < player.size / 2 + ep.size) {
+                    if (shieldActive) {
+                        shieldActive = false;
+                        enemyProjectiles.splice(i, 1);
+                    } else {
+                        gameOver();
+                    }
+                    return;
+                }
+            }
+
+            // Projectile vs Enemy/Boss
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                if (boss) {
+                    const dx = p.x - boss.x;
+                    const dy = p.y - boss.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < p.size + boss.size / 2) {
+                        boss.health -= (isPowerupActive ? 10 : 5);
+                        projectiles.splice(i, 1);
+                        explosionSynth.triggerAttackRelease("C2", "4n");
+                        if (boss.health <= 0) {
+                            boss = null;
+                            score += 500;
+                            money += 100;
+                            levelComplete();
+                            saveUserData();
+                        }
+                        return;
+                    }
+                } else {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        const dx_p = p.x - e.x;
+                        const dy_p = p.y - e.y;
+                        const distance_p = Math.sqrt(dx_p * dx_p + dy_p * dy_p);
+                        if (distance_p < p.size + e.size / 2) {
+                            explosionSynth.triggerAttackRelease("A3", "8n");
+                            projectiles.splice(i, 1);
+                            e.hitpoints--;
+                            if (e.hitpoints <= 0) {
+                                enemies.splice(j, 1);
+                                score += 10;
+                                money += 10;
+                                targetsToDestroy--;
+                                saveUserData();
+                            }
+                            if (Math.random() < 0.1 && !powerup) {
+                                const powerupTypes = ['speed', 'shield', 'laser'];
+                                const randomType = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
+                                powerup = new Powerup(e.x, e.y, randomType === 'laser' ? "⚡" : (randomType === 'shield' ? "🛡️" : "🌟"), randomType);
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // Player vs Powerup
+            if (powerup) {
+                const dx = player.x - powerup.x;
+                const dy = player.y - powerup.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < player.size / 2 + powerup.size / 2) {
+                    powerupSynth.triggerAttackRelease("C6", "8n");
+                    if (powerup.type === 'shield') {
+                        shieldActive = true;
+                    } else if (powerup.type === 'speed') {
+                        isPowerupActive = true;
+                        powerupEndTime = Date.now() + 10000;
+                    } else if (powerup.type === 'laser') {
+                        enemies = enemies.filter(e => {
+                            if (e.y < player.y) {
+                                return false;
+                            }
+                            return true;
+                        });
+                        score += 50 * enemies.length;
+                    }
+                    powerup = null;
+                }
+            }
+        }
+
+        function levelComplete() {
+            isGameRunning = false;
+            inGameUI.classList.add('hidden');
+            Tone.Transport.stop();
+            uiOverlay.classList.remove('hidden');
+            if (currentLevel < 10) {
+                messageDisplay.innerHTML = `لقد هزمت البطل! <br>المستوى ${currentLevel} انتهى.`;
+                let nextLevelButton = document.getElementById('nextLevelButton');
+                if (!nextLevelButton) {
+                    nextLevelButton = document.createElement('button');
+                    nextLevelButton.id = 'nextLevelButton';
+                    nextLevelButton.textContent = 'المستوى التالي';
+                    nextLevelButton.className = "next-level-button mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg";
+                    nextLevelButton.addEventListener('click', () => {
+                        uiOverlay.classList.add('hidden');
+                        currentLevel++;
+                        resetGame(currentLevel);
+                    });
+                    uiOverlay.appendChild(nextLevelButton);
+                }
+                nextLevelButton.classList.remove('hidden');
+                startButton.classList.add('hidden');
+                shopButton.classList.add('hidden');
+                levelSelectButton.classList.add('hidden');
+            } else {
+                messageDisplay.innerHTML = `لقد فزت باللعبة! <br>الآن يمكنك اللعب في الوضع اللانهائي!`;
+                 let endlessModeButton = document.getElementById('endlessModeButton');
+                if (!endlessModeButton) {
+                    endlessModeButton = document.createElement('button');
+                    endlessModeButton.id = 'endlessModeButton';
+                    endlessModeButton.textContent = 'وضع اللعب اللانهائي';
+                    endlessModeButton.className = "mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105";
+                    endlessModeButton.addEventListener('click', () => {
+                        uiOverlay.classList.add('hidden');
+                        resetGame(11); // Use a special level number for endless mode
+                    });
+                    uiOverlay.appendChild(endlessModeButton);
+                }
+                 endlessModeButton.classList.remove('hidden');
+                 shopButton.classList.remove('hidden');
+                 levelSelectButton.classList.remove('hidden');
+                 startButton.classList.add('hidden');
+            }
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            inGameUI.classList.add('hidden');
+            Tone.Transport.stop();
+            uiOverlay.classList.remove('hidden');
+            messageDisplay.innerHTML = `انتهت اللعبة!<br>نقاطك: ${score}`;
+            let endlessModeButton = document.getElementById('endlessModeButton');
+            if(endlessModeButton) endlessModeButton.classList.add('hidden');
+
+            let gameOverButton = document.getElementById('gameOverButton');
+            if(!gameOverButton) {
+                gameOverButton = document.createElement('button');
+                gameOverButton.id = 'gameOverButton';
+                gameOverButton.textContent = 'إعادة اللعب';
+                gameOverButton.className = "mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105";
+                gameOverButton.addEventListener('click', () => {
+                    uiOverlay.classList.add('hidden');
+                    resetGame(1);
+                });
+                uiOverlay.appendChild(gameOverButton);
+            }
+            gameOverButton.classList.remove('hidden');
+            startButton.classList.add('hidden');
+            shopButton.classList.remove('hidden');
+            levelSelectButton.classList.remove('hidden');
+            let nextLevelButton = document.getElementById('nextLevelButton');
+            if(nextLevelButton) nextLevelButton.classList.add('hidden');
+        }
+
+        function resetGameState() {
+            isGameRunning = false;
+            score = 0;
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50; 
+            projectiles = [];
+            enemies = [];
+            enemyProjectiles = []; // إعادة تعيين قذائف الأعداء
+            boss = null;
+            powerup = null;
+            isPowerupActive = false;
+            shieldActive = false;
+            targetsToDestroy = 20 + (currentLevel * 5);
+            Tone.start();
+            playBackgroundMusic();
+        }
+
+        function resetGame(levelToStart = 1) {
+            let gameOverButton = document.getElementById('gameOverButton');
+            if(gameOverButton) gameOverButton.classList.add('hidden');
+            let nextLevelButton = document.getElementById('nextLevelButton');
+            if(nextLevelButton) nextLevelButton.classList.add('hidden');
+            let endlessModeButton = document.getElementById('endlessModeButton');
+            if(endlessModeButton) endlessModeButton.classList.add('hidden');
+            shopButton.classList.add('hidden');
+            levelSelectButton.classList.add('hidden');
+            startButton.classList.add('hidden');
+            startLevel(levelToStart);
+        }
+
+        function startLevel(level) {
+            currentLevel = level;
+            resetGameState();
+            if (currentLevel > 10) {
+                messageDisplay.textContent = `وضع لا نهائي - ${heroes[Math.floor(Math.random() * 10)].image} هيا بنا!`;
+            } else {
+                messageDisplay.textContent = `المستوى ${currentLevel} - هيا بنا!`;
+            }
+            uiOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                uiOverlay.classList.add('hidden');
+                inGameUI.classList.remove('hidden');
+                isGameRunning = true;
+                requestAnimationFrame(gameLoop);
+            }, 2000);
+        }
+
+        function showLevelSelect() {
+            uiOverlay.classList.add('hidden');
+            levelSelectOverlay.classList.remove('hidden');
+            levelGrid.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const button = document.createElement('button');
+                button.textContent = `مرحلة ${i}`;
+                button.className = "level-button bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg";
+                button.addEventListener('click', () => {
+                    levelSelectOverlay.classList.add('hidden');
+                    startLevel(i);
+                });
+                levelGrid.appendChild(button);
+            }
+        }
+        
+        function showShop() {
+            // Hide main menu and show shop
+            uiOverlay.classList.add('hidden');
+            shopOverlay.classList.remove('hidden');
+            renderShop();
+        }
+
+        function showInGameShop() {
+            isPaused = true;
+            isGameRunning = false;
+            Tone.Transport.stop();
+            pauseOverlay.classList.add('hidden');
+            shopOverlay.classList.remove('hidden');
+            renderShop();
+        }
+
+        function renderShop() {
+            shopItems.innerHTML = '';
+            moneyDisplay.textContent = `أموالك: ${money}💰`;
+
+            Object.keys(ships).forEach(shipKey => {
+                const ship = ships[shipKey];
+                const isOwned = ownedShips.includes(shipKey);
+                const isEquipped = equippedShip === shipKey;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `shop-item w-full flex flex-col items-center rounded-lg shadow-md ${isEquipped ? 'equipped' : ''}`;
+                itemDiv.innerHTML = `
+                    <div class="text-4xl my-2">${ship.image}</div>
+                    <h3 class="text-white">${ship.name}</h3>
+                    <p class="text-gray-400">قوة نيران: ${ship.projectileCount}x</p>
+                    <p class="text-gray-400">سرعة القذائف: ${ship.projectileSpeed}</p>
+                `;
+
+                if (isOwned) {
+                    if (isEquipped) {
+                        const equippedText = document.createElement('p');
+                        equippedText.className = "text-green-400 mt-2";
+                        equippedText.textContent = "مجهزة حاليًا";
+                        itemDiv.appendChild(equippedText);
+                    } else {
+                        const equipButton = document.createElement('button');
+                        equipButton.textContent = 'تجهيز';
+                        equipButton.className = "equip-button mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full";
+                        equipButton.addEventListener('click', () => {
+                            equippedShip = shipKey;
+                            updatePlayerShip();
+                            saveUserData();
+                            renderShop();
+                        });
+                        itemDiv.appendChild(equipButton);
+                    }
+                } else {
+                    const buyButton = document.createElement('button');
+                    buyButton.textContent = `شراء مقابل ${ship.price}💰`;
+                    buyButton.className = `buy-button mt-2 font-bold py-2 px-4 rounded-full ${money >= ship.price ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : 'bg-gray-500 text-gray-300 cursor-not-allowed'}`;
+                    buyButton.disabled = money < ship.price;
+                    buyButton.addEventListener('click', () => {
+                        if (money >= ship.price) {
+                            money -= ship.price;
+                            ownedShips.push(shipKey);
+                            saveUserData();
+                            renderShop();
+                        }
+                    });
+                    itemDiv.appendChild(buyButton);
+                }
+                shopItems.appendChild(itemDiv);
+            });
+        }
+        
+        function pauseGame() {
+            isPaused = true;
+            isGameRunning = false;
+            Tone.Transport.stop();
+            pauseOverlay.classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            isGameRunning = true;
+            pauseOverlay.classList.add('hidden');
+            shopOverlay.classList.add('hidden'); // Hide shop if it was open
+            Tone.Transport.start();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function exitGame() {
+            isPaused = false;
+            isGameRunning = false;
+            pauseOverlay.classList.add('hidden');
+            shopOverlay.classList.add('hidden');
+            inGameUI.classList.add('hidden');
+            uiOverlay.classList.remove('hidden');
+            startButton.classList.remove('hidden');
+            shopButton.classList.remove('hidden');
+            levelSelectButton.classList.remove('hidden');
+            resetGameState();
+        }
+
+        function gameLoop() {
+            if (isPaused) return;
+            if (!isGameRunning) return;
+            drawGame();
+            updateGame();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.onload = () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            canvas.addEventListener('touchmove', handleInput);
+            canvas.addEventListener('mousemove', handleInput);
+            canvas.addEventListener('touchstart', handleInput);
+            canvas.addEventListener('mousedown', handleInput);
+            
+            startButton.addEventListener('click', () => {
+                uiOverlay.classList.add('hidden');
+                startLevel(1);
+            });
+            shopButton.addEventListener('click', showShop);
+            shopBackButton.addEventListener('click', () => {
+                 // Check if the game is running to return to the pause menu
+                if (isGameRunning) {
+                    shopOverlay.classList.add('hidden');
+                    pauseOverlay.classList.remove('hidden');
+                } else {
+                    shopOverlay.classList.add('hidden');
+                    uiOverlay.classList.remove('hidden');
+                }
+            });
+            levelSelectButton.addEventListener('click', showLevelSelect);
+            backButton.addEventListener('click', () => {
+                levelSelectOverlay.classList.add('hidden');
+                uiOverlay.classList.remove('hidden');
+                startButton.classList.remove('hidden');
+                levelSelectButton.classList.remove('hidden');
+            });
+            
+            // New button listeners
+            pauseButton.addEventListener('click', pauseGame);
+            resumeButton.addEventListener('click', resumeGame);
+            inGameShopButton.addEventListener('click', showInGameShop);
+            exitButton.addEventListener('click', exitGame);
+        };
+    </script>
+</body>
+</html>
