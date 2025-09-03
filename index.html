@@ -96,10 +96,10 @@
             display: none;
         }
 
-        .level-button, .start-game-button, .next-level-button, .shop-button, .buy-button, .equip-button, .back-button, .pause-button, .menu-button {
+        .level-button, .start-game-button, .next-level-button, .shop-button, .buy-button, .equip-button, .back-button, .pause-button, .menu-button, .new-game-button, .continue-button {
             transition: transform 0.3s, background-color 0.3s;
         }
-        .level-button:hover, .start-game-button:hover, .next-level-button:hover, .shop-button:hover, .buy-button:hover, .equip-button:hover, .back-button:hover, .pause-button:hover, .menu-button:hover {
+        .level-button:hover, .start-game-button:hover, .next-level-button:hover, .shop-button:hover, .buy-button:hover, .equip-button:hover, .back-button:hover, .pause-button:hover, .menu-button:hover, .new-game-button:hover, .continue-button:hover {
             transform: scale(1.05);
         }
 
@@ -144,8 +144,11 @@
     <div id="uiOverlay" class="game-ui p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
         <h1 id="mainTitle" class="text-4xl font-extrabold mb-4">مغامرة الأبطال</h1>
         <p id="message" class="text-lg">اضغط واسحب للتحرك في أي اتجاه وإطلاق النار!</p>
-        <button id="startButton" class="start-game-button mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
-            ابدأ اللعب
+        <button id="continueButton" class="start-game-button mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105 hidden">
+            متابعة اللعب
+        </button>
+        <button id="newGameButton" class="new-game-button mt-4 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+            لعبة جديدة
         </button>
         <button id="shopButton" class="shop-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             المتجر
@@ -167,7 +170,7 @@
         <h2 id="shopTitle" class="text-3xl font-bold mb-4">المتجر</h2>
         <p id="moneyDisplay" class="text-lg mb-4">أموالك: 0💰</p>
         <div id="shopItems" class="w-full"></div>
-        <button id="shopBackButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
+        <button id="shopBackButton" class="back-button my-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
             رجوع
         </button>
     </div>
@@ -176,7 +179,7 @@
     <div id="levelSelectOverlay" class="game-ui hidden p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
         <h2 id="levelSelectTitle" class="text-3xl font-bold mb-4">اختر البطل</h2>
         <div id="levelGrid" class="grid grid-cols-3 gap-4"></div>
-        <button id="backButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
+        <button id="backButton" class="back-button my-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
             رجوع
         </button>
     </div>
@@ -217,7 +220,8 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const uiOverlay = document.getElementById('uiOverlay');
-        const startButton = document.getElementById('startButton');
+        const continueButton = document.getElementById('continueButton');
+        const newGameButton = document.getElementById('newGameButton');
         const shopButton = document.getElementById('shopButton');
         const shopOverlay = document.getElementById('shopOverlay');
         const shopBackButton = document.getElementById('shopBackButton');
@@ -225,7 +229,6 @@
         const shopItems = document.getElementById('shopItems');
         const levelSelectButton = document.getElementById('levelSelectButton');
         const levelSelectOverlay = document.getElementById('levelSelectOverlay');
-        const levelGrid = document.getElementById('levelGrid');
         const backButton = document.getElementById('backButton');
         const messageDisplay = document.getElementById('message');
         const inGameUI = document.getElementById('inGameUI');
@@ -261,7 +264,8 @@
             ar: {
                 title: "مغامرة الأبطال",
                 mainMessage: "اضغط واسحب للتحرك في أي اتجاه وإطلاق النار!",
-                startBtn: "ابدأ اللعب",
+                continueBtn: "متابعة اللعب",
+                newGameBtn: "لعبة جديدة",
                 shopBtn: "المتجر",
                 levelSelectBtn: "اختيار مرحلة",
                 shopTitle: "المتجر",
@@ -299,7 +303,8 @@
             en: {
                 title: "Heroes' Adventure",
                 mainMessage: "Tap and drag to move and fire!",
-                startBtn: "Start Game",
+                continueBtn: "Continue",
+                newGameBtn: "New Game",
                 shopBtn: "Shop",
                 levelSelectBtn: "Select Level",
                 shopTitle: "Shop",
@@ -349,19 +354,21 @@
             image: ships[equippedShip].image,
         };
         
+        // وظيفة حفظ بيانات المستخدم
         const saveUserData = async () => {
             if (!window.firebaseInitialized || !window.firebase.getUserId()) return;
             const userDocRef = doc(window.firebase.db(), `artifacts/${window.firebase.getAppId()}/users/${window.firebase.getUserId()}/gameData/userStats`);
             try {
-                await setDoc(userDocRef, { money, ownedShips, equippedShip }, { merge: true });
+                await setDoc(userDocRef, { money, ownedShips, equippedShip, currentLevel }, { merge: true });
             } catch (e) {
                 console.error("Error saving user data:", e);
             }
         };
 
+        // وظيفة تحميل بيانات المستخدم
         const loadUserData = () => {
             if (!window.firebaseInitialized || !window.firebase.getUserId()) {
-                setTimeout(loadUserData, 1000); // Retry until Firebase is ready
+                setTimeout(loadUserData, 1000); // إعادة المحاولة حتى يصبح Firebase جاهزًا
                 return;
             }
             const userDocRef = doc(window.firebase.db(), `artifacts/${window.firebase.getAppId()}/users/${window.firebase.getUserId()}/gameData/userStats`);
@@ -371,11 +378,17 @@
                     money = data.money || 0;
                     ownedShips = data.ownedShips || ['ship1'];
                     equippedShip = data.equippedShip || 'ship1';
+                    currentLevel = data.currentLevel || 1;
+                    if (currentLevel > 1) {
+                         continueButton.classList.remove('hidden');
+                    }
                     moneyDisplay.textContent = `${translations[currentLanguage].money} ${money}💰`;
                     updatePlayerShip();
                     renderShop();
+                    updateUI();
                 } else {
-                    saveUserData(); // Create initial data
+                    saveUserData(); // إنشاء البيانات الأولية
+                    updateUI();
                 }
             });
         };
@@ -839,7 +852,7 @@
             Tone.Transport.stop();
             uiOverlay.classList.remove('hidden');
             if (currentLevel < 10) {
-                messageDisplay.innerHTML = `${translations[currentLanguage].levelEnd} ${currentLevel} ${translations[currentLanguage].ready}`;
+                messageDisplay.innerHTML = `${translations[currentLanguage].levelEnd} ${currentLevel} <br>${translations[currentLanguage].ready}`;
                 let nextLevelButton = document.getElementById('nextLevelButton');
                 if (!nextLevelButton) {
                     nextLevelButton = document.createElement('button');
@@ -854,7 +867,8 @@
                     uiOverlay.appendChild(nextLevelButton);
                 }
                 nextLevelButton.classList.remove('hidden');
-                startButton.classList.add('hidden');
+                continueButton.classList.add('hidden');
+                newGameButton.classList.add('hidden');
                 shopButton.classList.add('hidden');
                 levelSelectButton.classList.add('hidden');
             } else {
@@ -874,7 +888,8 @@
                  endlessModeButton.classList.remove('hidden');
                  shopButton.classList.remove('hidden');
                  levelSelectButton.classList.remove('hidden');
-                 startButton.classList.add('hidden');
+                 continueButton.classList.add('hidden');
+                 newGameButton.classList.add('hidden');
             }
         }
 
@@ -900,7 +915,8 @@
                 uiOverlay.appendChild(gameOverButton);
             }
             gameOverButton.classList.remove('hidden');
-            startButton.classList.remove('hidden');
+            continueButton.classList.remove('hidden');
+            newGameButton.classList.remove('hidden');
             shopButton.classList.remove('hidden');
             levelSelectButton.classList.remove('hidden');
             let nextLevelButton = document.getElementById('nextLevelButton');
@@ -932,13 +948,15 @@
             if(endlessModeButton) endlessModeButton.classList.add('hidden');
             shopButton.classList.add('hidden');
             levelSelectButton.classList.add('hidden');
-            startButton.classList.add('hidden');
+            continueButton.classList.add('hidden');
+            newGameButton.classList.add('hidden');
             startLevel(levelToStart);
         }
 
         function startLevel(level) {
             currentLevel = level;
             resetGameState();
+            saveUserData(); // حفظ المستوى الجديد
             if (currentLevel > 10) {
                 messageDisplay.textContent = `${translations[currentLanguage].endlessStart} ${heroes[Math.floor(Math.random() * 10)].image} ${translations[currentLanguage].ready}`;
             } else {
@@ -1052,9 +1070,7 @@
             pauseOverlay.classList.add('hidden');
             inGameUI.classList.add('hidden');
             uiOverlay.classList.remove('hidden');
-            startButton.classList.remove('hidden');
-            shopButton.classList.remove('hidden');
-            levelSelectButton.classList.remove('hidden');
+            updateMainMenuButtons();
             resetGameState();
             updateUI();
         }
@@ -1063,7 +1079,8 @@
             document.documentElement.lang = currentLanguage;
             document.getElementById('mainTitle').textContent = translations[currentLanguage].title;
             document.getElementById('message').textContent = translations[currentLanguage].mainMessage;
-            document.getElementById('startButton').textContent = translations[currentLanguage].startBtn;
+            document.getElementById('continueButton').textContent = translations[currentLanguage].continueBtn;
+            document.getElementById('newGameButton').textContent = translations[currentLanguage].newGameBtn;
             document.getElementById('shopButton').textContent = translations[currentLanguage].shopBtn;
             document.getElementById('levelSelectButton').textContent = translations[currentLanguage].levelSelectBtn;
             document.getElementById('shopTitle').textContent = translations[currentLanguage].shopTitle;
@@ -1089,6 +1106,17 @@
             
             renderShop();
             showLevelSelect(); // Re-render to update level text
+        }
+        
+        function updateMainMenuButtons() {
+            if (currentLevel > 1) {
+                continueButton.classList.remove('hidden');
+            } else {
+                continueButton.classList.add('hidden');
+            }
+            newGameButton.classList.remove('hidden');
+            shopButton.classList.remove('hidden');
+            levelSelectButton.classList.remove('hidden');
         }
 
         function gameLoop() {
@@ -1119,23 +1147,31 @@
                 updateUI();
             });
             
-            startButton.addEventListener('click', () => {
+            continueButton.addEventListener('click', () => {
+                uiOverlay.classList.add('hidden');
+                startLevel(currentLevel);
+            });
+            
+            newGameButton.addEventListener('click', () => {
+                currentLevel = 1;
                 uiOverlay.classList.add('hidden');
                 startLevel(1);
             });
+
             shopButton.addEventListener('click', showShop);
+            
             shopBackButton.addEventListener('click', () => {
                 shopOverlay.classList.add('hidden');
                 uiOverlay.classList.remove('hidden');
+                updateMainMenuButtons();
             });
+            
             levelSelectButton.addEventListener('click', showLevelSelect);
+            
             backButton.addEventListener('click', () => {
                 levelSelectOverlay.classList.add('hidden');
                 uiOverlay.classList.remove('hidden');
-                startButton.classList.remove('hidden');
-                levelSelectButton.classList.remove('hidden');
-                shopButton.classList.remove('hidden');
-                updateUI();
+                updateMainMenuButtons();
             });
             
             pauseButton.addEventListener('click', pauseGame);
