@@ -96,10 +96,10 @@
             display: none;
         }
 
-        .level-button, .start-game-button, .next-level-button, .shop-button, .buy-button, .equip-button, .back-button, .pause-button, .in-game-shop-button {
+        .level-button, .start-game-button, .next-level-button, .shop-button, .buy-button, .equip-button, .back-button, .pause-button, .menu-button {
             transition: transform 0.3s, background-color 0.3s;
         }
-        .level-button:hover, .start-game-button:hover, .next-level-button:hover, .shop-button:hover, .buy-button:hover, .equip-button:hover, .back-button:hover, .pause-button:hover, .in-game-shop-button:hover {
+        .level-button:hover, .start-game-button:hover, .next-level-button:hover, .shop-button:hover, .buy-button:hover, .equip-button:hover, .back-button:hover, .pause-button:hover, .menu-button:hover {
             transform: scale(1.05);
         }
 
@@ -123,7 +123,10 @@
             position: absolute;
             top: 1rem;
             right: 1rem;
-            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            padding: 1rem;
         }
 
         .pause-button {
@@ -139,7 +142,7 @@
 
     <!-- Game UI Overlay -->
     <div id="uiOverlay" class="game-ui p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
-        <h1 class="text-4xl font-extrabold mb-4">مغامرة الأبطال</h1>
+        <h1 id="mainTitle" class="text-4xl font-extrabold mb-4">مغامرة الأبطال</h1>
         <p id="message" class="text-lg">اضغط واسحب للتحرك في أي اتجاه وإطلاق النار!</p>
         <button id="startButton" class="start-game-button mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             ابدأ اللعب
@@ -147,14 +150,21 @@
         <button id="shopButton" class="shop-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             المتجر
         </button>
-        <button id="levelSelectButton" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+        <button id="levelSelectButton" class="level-select-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             اختيار مرحلة
         </button>
+        <div class="mt-4">
+            <label for="language-select" class="text-white mr-2">اللغة:</label>
+            <select id="language-select" class="bg-gray-700 text-white rounded-md p-2">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+            </select>
+        </div>
     </div>
 
     <!-- Shop UI -->
     <div id="shopOverlay" class="game-ui hidden w-80 p-6 rounded-2xl bg-gray-800 bg-opacity-90 shadow-2xl transition-opacity duration-300">
-        <h2 class="text-3xl font-bold mb-4">المتجر</h2>
+        <h2 id="shopTitle" class="text-3xl font-bold mb-4">المتجر</h2>
         <p id="moneyDisplay" class="text-lg mb-4">أموالك: 0💰</p>
         <div id="shopItems" class="w-full"></div>
         <button id="shopBackButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
@@ -164,7 +174,7 @@
 
     <!-- Level Selection UI -->
     <div id="levelSelectOverlay" class="game-ui hidden p-6 rounded-2xl bg-gray-800 bg-opacity-80 shadow-2xl transition-opacity duration-300">
-        <h2 class="text-3xl font-bold mb-4">اختر البطل</h2>
+        <h2 id="levelSelectTitle" class="text-3xl font-bold mb-4">اختر البطل</h2>
         <div id="levelGrid" class="grid grid-cols-3 gap-4"></div>
         <button id="backButton" class="mt-6 back-button bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105">
             رجوع
@@ -173,16 +183,23 @@
 
     <!-- Pause UI -->
     <div id="pauseOverlay" class="game-ui hidden p-6 rounded-2xl bg-gray-800 bg-opacity-90 shadow-2xl">
-        <h2 class="text-3xl font-bold mb-4">توقف مؤقت</h2>
+        <h2 id="pauseTitle" class="text-3xl font-bold mb-4">توقف مؤقت</h2>
         <button id="resumeButton" class="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             إكمال
         </button>
-        <button id="inGameShopButton" class="in-game-shop-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+        <button id="shopFromPauseButton" class="menu-button mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             المتجر
         </button>
         <button id="exitButton" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
             العودة للقائمة الرئيسية
         </button>
+        <div class="mt-4">
+            <label for="pause-language-select" class="text-white mr-2">اللغة:</label>
+            <select id="pause-language-select" class="bg-gray-700 text-white rounded-md p-2">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+            </select>
+        </div>
     </div>
 
     <!-- Game Canvas -->
@@ -215,9 +232,11 @@
         const pauseButton = document.getElementById('pauseButton');
         const pauseOverlay = document.getElementById('pauseOverlay');
         const resumeButton = document.getElementById('resumeButton');
-        const inGameShopButton = document.getElementById('inGameShopButton');
         const exitButton = document.getElementById('exitButton');
-
+        const languageSelect = document.getElementById('language-select');
+        const pauseLanguageSelect = document.getElementById('pause-language-select');
+        const shopFromPauseButton = document.getElementById('shopFromPauseButton');
+        
         let isGameRunning = false;
         let isPaused = false;
         let score = 0;
@@ -225,7 +244,6 @@
         let currentLevel = 1;
         let projectiles = [];
         let enemies = [];
-        let enemyProjectiles = []; // مصفوفة لتخزين قذائف الأعداء
         let boss = null;
         let powerup = null;
         let isPowerupActive = false;
@@ -237,11 +255,91 @@
         
         let ownedShips = ['ship1'];
         let equippedShip = 'ship1';
+        let currentLanguage = 'ar';
+
+        const translations = {
+            ar: {
+                title: "مغامرة الأبطال",
+                mainMessage: "اضغط واسحب للتحرك في أي اتجاه وإطلاق النار!",
+                startBtn: "ابدأ اللعب",
+                shopBtn: "المتجر",
+                levelSelectBtn: "اختيار مرحلة",
+                shopTitle: "المتجر",
+                money: "أموالك:",
+                back: "رجوع",
+                levelSelectTitle: "اختر البطل",
+                level: "مرحلة",
+                pauseTitle: "توقف مؤقت",
+                resumeBtn: "إكمال",
+                exitBtn: "العودة للقائمة الرئيسية",
+                pauseBtn: "توقف مؤقت",
+                score: "النقاط",
+                levelText: "المستوى",
+                hero: "البطل",
+                heroName1: "المركبة الأولى",
+                heroName2: "مركبة الصقر",
+                heroName3: "مركبة التنين",
+                firepower: "قوة نيران",
+                projectileSpeed: "سرعة القذائف",
+                equipped: "مجهزة حاليًا",
+                equip: "تجهيز",
+                buy: "شراء مقابل",
+                levelEnd: "لقد هزمت البطل! <br>المستوى",
+                nextLevel: "المستوى التالي",
+                endlessMode: "لقد فزت باللعبة! <br>الآن يمكنك اللعب في الوضع اللانهائي!",
+                endlessBtn: "وضع اللعب اللانهائي",
+                gameOver: "انتهت اللعبة!",
+                yourScore: "نقاطك:",
+                restart: "إعادة اللعب",
+                boss: "زعيم المرحلة",
+                endlessStart: "وضع لا نهائي -",
+                ready: "هيا بنا!",
+                shopFromPause: "المتجر",
+            },
+            en: {
+                title: "Heroes' Adventure",
+                mainMessage: "Tap and drag to move and fire!",
+                startBtn: "Start Game",
+                shopBtn: "Shop",
+                levelSelectBtn: "Select Level",
+                shopTitle: "Shop",
+                money: "Your Money:",
+                back: "Back",
+                levelSelectTitle: "Select Hero",
+                level: "Level",
+                pauseTitle: "Paused",
+                resumeBtn: "Resume",
+                exitBtn: "Exit to Main Menu",
+                pauseBtn: "Pause",
+                score: "Score",
+                levelText: "Level",
+                hero: "Hero",
+                heroName1: "First Ship",
+                heroName2: "Falcon Ship",
+                heroName3: "Dragon Ship",
+                firepower: "Firepower",
+                projectileSpeed: "Projectile Speed",
+                equipped: "Currently Equipped",
+                equip: "Equip",
+                buy: "Buy for",
+                levelEnd: "You defeated the Hero! <br>Level",
+                nextLevel: "Next Level",
+                endlessMode: "You won the game! <br>Now you can play in Endless Mode!",
+                endlessBtn: "Endless Mode",
+                gameOver: "Game Over!",
+                yourScore: "Your Score:",
+                restart: "Restart Game",
+                boss: "Level Boss",
+                endlessStart: "Endless Mode -",
+                ready: "Let's Go!",
+                shopFromPause: "Shop",
+            }
+        };
 
         const ships = {
-            ship1: { name: 'المركبة الأولى', price: 0, image: '🚀', projectileCount: 2, projectileSpeed: 10 },
-            ship2: { name: 'مركبة الصقر', price: 500, image: '🦅', projectileCount: 3, projectileSpeed: 15 },
-            ship3: { name: 'مركبة التنين', price: 1500, image: '🐉', projectileCount: 1, projectileSpeed: 25 },
+            ship1: { name: 'heroName1', price: 0, image: '🚀', projectileCount: 2, projectileSpeed: 10 },
+            ship2: { name: 'heroName2', price: 500, image: '🦅', projectileCount: 3, projectileSpeed: 15 },
+            ship3: { name: 'heroName3', price: 1500, image: '🐉', projectileCount: 1, projectileSpeed: 25 },
         };
 
         const player = {
@@ -253,7 +351,7 @@
         
         const saveUserData = async () => {
             if (!window.firebaseInitialized || !window.firebase.getUserId()) return;
-            const userDocRef = doc(window.firebase.db(), `artifacts/${appId}/users/${window.firebase.getUserId()}/gameData/userStats`);
+            const userDocRef = doc(window.firebase.db(), `artifacts/${window.firebase.getAppId()}/users/${window.firebase.getUserId()}/gameData/userStats`);
             try {
                 await setDoc(userDocRef, { money, ownedShips, equippedShip }, { merge: true });
             } catch (e) {
@@ -266,14 +364,14 @@
                 setTimeout(loadUserData, 1000); // Retry until Firebase is ready
                 return;
             }
-            const userDocRef = doc(window.firebase.db(), `artifacts/${appId}/users/${window.firebase.getUserId()}/gameData/userStats`);
+            const userDocRef = doc(window.firebase.db(), `artifacts/${window.firebase.getAppId()}/users/${window.firebase.getUserId()}/gameData/userStats`);
             onSnapshot(userDocRef, (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
                     money = data.money || 0;
                     ownedShips = data.ownedShips || ['ship1'];
                     equippedShip = data.equippedShip || 'ship1';
-                    moneyDisplay.textContent = `أموالك: ${money}💰`;
+                    moneyDisplay.textContent = `${translations[currentLanguage].money} ${money}💰`;
                     updatePlayerShip();
                     renderShop();
                 } else {
@@ -291,7 +389,6 @@
         const laserSynth = new Tone.Synth().toDestination();
         const explosionSynth = new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.2 } }).toDestination();
         const bossLaserSynth = new Tone.Synth({ oscillator: { type: "square" }}).toDestination();
-        const enemyLaserSynth = new Tone.Synth({ oscillator: { type: "triangle" }}).toDestination();
         const powerupSynth = new Tone.Synth().toDestination();
         const backgroundMusic = new Tone.PolySynth().toDestination();
         let musicLoop;
@@ -327,41 +424,17 @@
             }
         }
         
-        class EnemyProjectile {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.size = 5;
-                this.speed = 4;
-                this.color = '#ff0000';
-                enemyLaserSynth.triggerAttackRelease("E3", "8n");
-                // Calculate direction towards player
-                const dx = player.x - this.x;
-                const dy = player.y - this.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                this.vx = (dx / dist) * this.speed;
-                this.vy = (dy / dist) * this.speed;
-            }
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-            }
-        }
-        
         class AITarget {
-            constructor(x, y, size, speed, image) {
+            constructor(x, y, size, speed, image, hasGun) {
                 this.x = x;
                 this.y = y;
                 this.size = size;
                 this.speed = speed;
                 this.image = image;
                 this.hitpoints = 3;
+                this.hasGun = hasGun;
+                this.shootInterval = 1000;
+                this.lastShot = Date.now();
             }
             draw() {
                 ctx.font = `${this.size}px Arial`;
@@ -377,6 +450,31 @@
                     this.x += (dx / distance) * this.speed;
                     this.y += (dy / distance) * this.speed;
                 }
+                
+                if (this.hasGun && Date.now() - this.lastShot > this.shootInterval) {
+                    enemies.push(new EnemyProjectile(this.x, this.y, 5, 5, '#0d9488'));
+                    bossLaserSynth.triggerAttackRelease("G2", "8n");
+                    this.lastShot = Date.now();
+                }
+            }
+        }
+        
+        class EnemyProjectile {
+            constructor(x, y, speed, size, color) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.speed = speed;
+                this.color = color;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.y += this.speed;
             }
         }
         
@@ -388,8 +486,6 @@
                 this.speed = speed;
                 this.image = image;
                 this.hitpoints = 2;
-                this.lastShotTime = Date.now();
-                this.fireRate = 2000 + Math.random() * 2000;
             }
             draw() {
                 ctx.font = `${this.size}px Arial`;
@@ -399,10 +495,10 @@
             }
             update() {
                 this.y += this.speed;
-                // Add a chance for this enemy type to shoot
-                if (Math.random() < 0.005 && Date.now() - this.lastShotTime > this.fireRate) {
-                    enemyProjectiles.push(new EnemyProjectile(this.x, this.y));
-                    this.lastShotTime = Date.now();
+                const closestProjectile = projectiles.reduce((closest, p) => 
+                    (Math.abs(p.y - this.y) < Math.abs(closest.y - this.y) && p.x > 0) ? p : closest, { y: 10000 });
+                if (closestProjectile && Math.abs(closestProjectile.x - this.x) < 50) {
+                    this.x += (this.x > closestProjectile.x) ? this.speed : -this.speed;
                 }
             }
         }
@@ -469,7 +565,7 @@
                 this.x += (player.x > this.x) ? Math.min(this.speed, player.x - this.x) : Math.max(-this.speed, player.x - this.x);
                 this.attackTimer++;
                 if (this.attackTimer % this.attackRate === 0) {
-                    enemyProjectiles.push(new EnemyProjectile(this.x, this.y));
+                    enemies.push(new Target(this.x, this.y, 25, this.projectileSpeed, "💀"));
                     bossLaserSynth.triggerAttackRelease("G2", "8n");
                 }
             }
@@ -502,8 +598,9 @@
             
             const currentTime = Date.now();
             const currentShip = ships[equippedShip];
-            if (currentTime - lastTouchTime > (isPowerupActive ? 100 : 200)) {
-                
+            const shootRate = isPowerupActive ? 100 : 200;
+
+            if (currentTime - lastTouchTime > shootRate) {
                 for (let i = 0; i < currentShip.projectileCount; i++) {
                     let offset = 0;
                     if (currentShip.projectileCount > 1) {
@@ -520,7 +617,6 @@
             drawPlayer();
             projectiles.forEach(p => p.draw());
             enemies.forEach(e => e.draw());
-            enemyProjectiles.forEach(ep => ep.draw()); // رسم قذائف الأعداء
             if (boss) boss.draw();
             if (powerup) powerup.draw();
             drawScore();
@@ -546,21 +642,21 @@
             ctx.fillStyle = '#e5e7eb';
             ctx.font = '2rem Cairo';
             ctx.textAlign = 'left';
-            ctx.fillText(`النقاط: ${score}`, 20, 40);
+            ctx.fillText(`${translations[currentLanguage].score}: ${score}`, 20, 40);
         }
         
         function drawMoney() {
             ctx.fillStyle = '#e5e7eb';
             ctx.font = '2rem Cairo';
             ctx.textAlign = 'left';
-            ctx.fillText(`المال: ${money} 💰`, 20, 80);
+            ctx.fillText(`${translations[currentLanguage].money} ${money} 💰`, 20, 80);
         }
 
         function drawLevel() {
             ctx.fillStyle = '#e5e7eb';
             ctx.font = '2rem Cairo';
             ctx.textAlign = 'right';
-            ctx.fillText(`المستوى: ${currentLevel}`, canvas.width - 20, 40);
+            ctx.fillText(`${translations[currentLanguage].levelText}: ${currentLevel}`, canvas.width - 20, 40);
         }
 
         function updateGame() {
@@ -569,13 +665,10 @@
             }
 
             projectiles.forEach(p => p.update());
-            projectiles = projectiles.filter(p => p.y > 0);
+            projectiles = projectiles.filter(p => p.y > 0 && p.y < canvas.height && p.x > 0 && p.x < canvas.width);
 
             enemies.forEach(e => e.update());
-            enemies = enemies.filter(e => e.y < canvas.height && e.y > -100);
-            
-            enemyProjectiles.forEach(ep => ep.update());
-            enemyProjectiles = enemyProjectiles.filter(ep => ep.y < canvas.height && ep.x > 0 && ep.x < canvas.width);
+            enemies = enemies.filter(e => e.y < canvas.height && e.y > -100 && e.x > 0 && e.x < canvas.width);
             
             if (powerup) {
                 powerup.update();
@@ -603,11 +696,10 @@
                 const y = -50;
                 const speed = 2 + (currentLevel * 0.2);
                 
-                // 50% chance to spawn a shooting enemy
                 if (Math.random() < 0.5) {
                     enemies.push(new Target(x, y, size, speed, "👻"));
                 } else {
-                    enemies.push(new AITarget(x, y, size, speed + 1, "🧟"));
+                    enemies.push(new AITarget(x, y, size, speed + 1, "🧟", true));
                 }
                 lastEnemySpawn = now;
             }
@@ -619,7 +711,7 @@
                 bossLevel = Math.floor(Math.random() * 10) + 1;
             }
             boss = new Boss(heroes[bossLevel - 1]);
-            messageDisplay.innerHTML = `زعيم المرحلة ${bossLevel}!`;
+            messageDisplay.innerHTML = `${translations[currentLanguage].boss} ${bossLevel}!`;
             uiOverlay.classList.remove('hidden');
             setTimeout(() => {
                 uiOverlay.classList.add('hidden');
@@ -633,35 +725,34 @@
             // Player vs Enemy
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
-                const dx = player.x - e.x;
-                const dy = player.y - e.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < player.size / 2 + e.size / 2) {
-                    if (shieldActive) {
-                        shieldActive = false;
-                        enemies.splice(i, 1);
-                        explosionSynth.triggerAttackRelease("A3", "8n");
-                    } else {
-                        gameOver();
+                if (e instanceof EnemyProjectile) {
+                    const dx = player.x - e.x;
+                    const dy = player.y - e.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < player.size / 2 + e.size / 2) {
+                        if (shieldActive) {
+                            shieldActive = false;
+                            enemies.splice(i, 1);
+                            explosionSynth.triggerAttackRelease("A3", "8n");
+                        } else {
+                            gameOver();
+                        }
+                        return;
                     }
-                    return;
-                }
-            }
-            
-            // Player vs Enemy Projectiles
-            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
-                const ep = enemyProjectiles[i];
-                const dx = player.x - ep.x;
-                const dy = player.y - ep.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < player.size / 2 + ep.size) {
-                    if (shieldActive) {
-                        shieldActive = false;
-                        enemyProjectiles.splice(i, 1);
-                    } else {
-                        gameOver();
+                } else {
+                    const dx = player.x - e.x;
+                    const dy = player.y - e.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < player.size / 2 + e.size / 2) {
+                        if (shieldActive) {
+                            shieldActive = false;
+                            enemies.splice(i, 1);
+                            explosionSynth.triggerAttackRelease("A3", "8n");
+                        } else {
+                            gameOver();
+                        }
+                        return;
                     }
-                    return;
                 }
             }
 
@@ -688,6 +779,8 @@
                 } else {
                     for (let j = enemies.length - 1; j >= 0; j--) {
                         const e = enemies[j];
+                        if (e instanceof EnemyProjectile) continue;
+
                         const dx_p = p.x - e.x;
                         const dy_p = p.y - e.y;
                         const distance_p = Math.sqrt(dx_p * dx_p + dy_p * dy_p);
@@ -726,13 +819,14 @@
                         isPowerupActive = true;
                         powerupEndTime = Date.now() + 10000;
                     } else if (powerup.type === 'laser') {
+                        // Implement a laser projectile that hits all enemies in a line
                         enemies = enemies.filter(e => {
                             if (e.y < player.y) {
-                                return false;
+                                return false; // Remove all enemies below the player
                             }
                             return true;
                         });
-                        score += 50 * enemies.length;
+                        score += 50 * enemies.length; // Bonus points for hitting all enemies
                     }
                     powerup = null;
                 }
@@ -745,12 +839,12 @@
             Tone.Transport.stop();
             uiOverlay.classList.remove('hidden');
             if (currentLevel < 10) {
-                messageDisplay.innerHTML = `لقد هزمت البطل! <br>المستوى ${currentLevel} انتهى.`;
+                messageDisplay.innerHTML = `${translations[currentLanguage].levelEnd} ${currentLevel} ${translations[currentLanguage].ready}`;
                 let nextLevelButton = document.getElementById('nextLevelButton');
                 if (!nextLevelButton) {
                     nextLevelButton = document.createElement('button');
                     nextLevelButton.id = 'nextLevelButton';
-                    nextLevelButton.textContent = 'المستوى التالي';
+                    nextLevelButton.textContent = translations[currentLanguage].nextLevel;
                     nextLevelButton.className = "next-level-button mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg";
                     nextLevelButton.addEventListener('click', () => {
                         uiOverlay.classList.add('hidden');
@@ -764,16 +858,16 @@
                 shopButton.classList.add('hidden');
                 levelSelectButton.classList.add('hidden');
             } else {
-                messageDisplay.innerHTML = `لقد فزت باللعبة! <br>الآن يمكنك اللعب في الوضع اللانهائي!`;
+                messageDisplay.innerHTML = translations[currentLanguage].endlessMode;
                  let endlessModeButton = document.getElementById('endlessModeButton');
                 if (!endlessModeButton) {
                     endlessModeButton = document.createElement('button');
                     endlessModeButton.id = 'endlessModeButton';
-                    endlessModeButton.textContent = 'وضع اللعب اللانهائي';
+                    endlessModeButton.textContent = translations[currentLanguage].endlessBtn;
                     endlessModeButton.className = "mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105";
                     endlessModeButton.addEventListener('click', () => {
                         uiOverlay.classList.add('hidden');
-                        resetGame(11); // Use a special level number for endless mode
+                        resetGame(11);
                     });
                     uiOverlay.appendChild(endlessModeButton);
                 }
@@ -789,7 +883,7 @@
             inGameUI.classList.add('hidden');
             Tone.Transport.stop();
             uiOverlay.classList.remove('hidden');
-            messageDisplay.innerHTML = `انتهت اللعبة!<br>نقاطك: ${score}`;
+            messageDisplay.innerHTML = `${translations[currentLanguage].gameOver}<br>${translations[currentLanguage].yourScore} ${score}`;
             let endlessModeButton = document.getElementById('endlessModeButton');
             if(endlessModeButton) endlessModeButton.classList.add('hidden');
 
@@ -797,7 +891,7 @@
             if(!gameOverButton) {
                 gameOverButton = document.createElement('button');
                 gameOverButton.id = 'gameOverButton';
-                gameOverButton.textContent = 'إعادة اللعب';
+                gameOverButton.textContent = translations[currentLanguage].restart;
                 gameOverButton.className = "mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105";
                 gameOverButton.addEventListener('click', () => {
                     uiOverlay.classList.add('hidden');
@@ -806,7 +900,7 @@
                 uiOverlay.appendChild(gameOverButton);
             }
             gameOverButton.classList.remove('hidden');
-            startButton.classList.add('hidden');
+            startButton.classList.remove('hidden');
             shopButton.classList.remove('hidden');
             levelSelectButton.classList.remove('hidden');
             let nextLevelButton = document.getElementById('nextLevelButton');
@@ -820,7 +914,6 @@
             player.y = canvas.height - 50; 
             projectiles = [];
             enemies = [];
-            enemyProjectiles = []; // إعادة تعيين قذائف الأعداء
             boss = null;
             powerup = null;
             isPowerupActive = false;
@@ -847,9 +940,9 @@
             currentLevel = level;
             resetGameState();
             if (currentLevel > 10) {
-                messageDisplay.textContent = `وضع لا نهائي - ${heroes[Math.floor(Math.random() * 10)].image} هيا بنا!`;
+                messageDisplay.textContent = `${translations[currentLanguage].endlessStart} ${heroes[Math.floor(Math.random() * 10)].image} ${translations[currentLanguage].ready}`;
             } else {
-                messageDisplay.textContent = `المستوى ${currentLevel} - هيا بنا!`;
+                messageDisplay.textContent = `${translations[currentLanguage].levelText} ${currentLevel} - ${translations[currentLanguage].ready}`;
             }
             uiOverlay.classList.remove('hidden');
             setTimeout(() => {
@@ -866,7 +959,7 @@
             levelGrid.innerHTML = '';
             for (let i = 1; i <= 10; i++) {
                 const button = document.createElement('button');
-                button.textContent = `مرحلة ${i}`;
+                button.textContent = `${translations[currentLanguage].level} ${i}`;
                 button.className = "level-button bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg";
                 button.addEventListener('click', () => {
                     levelSelectOverlay.classList.add('hidden');
@@ -877,16 +970,7 @@
         }
         
         function showShop() {
-            // Hide main menu and show shop
             uiOverlay.classList.add('hidden');
-            shopOverlay.classList.remove('hidden');
-            renderShop();
-        }
-
-        function showInGameShop() {
-            isPaused = true;
-            isGameRunning = false;
-            Tone.Transport.stop();
             pauseOverlay.classList.add('hidden');
             shopOverlay.classList.remove('hidden');
             renderShop();
@@ -894,7 +978,7 @@
 
         function renderShop() {
             shopItems.innerHTML = '';
-            moneyDisplay.textContent = `أموالك: ${money}💰`;
+            moneyDisplay.textContent = `${translations[currentLanguage].money} ${money}💰`;
 
             Object.keys(ships).forEach(shipKey => {
                 const ship = ships[shipKey];
@@ -905,20 +989,20 @@
                 itemDiv.className = `shop-item w-full flex flex-col items-center rounded-lg shadow-md ${isEquipped ? 'equipped' : ''}`;
                 itemDiv.innerHTML = `
                     <div class="text-4xl my-2">${ship.image}</div>
-                    <h3 class="text-white">${ship.name}</h3>
-                    <p class="text-gray-400">قوة نيران: ${ship.projectileCount}x</p>
-                    <p class="text-gray-400">سرعة القذائف: ${ship.projectileSpeed}</p>
+                    <h3 class="text-white">${translations[currentLanguage][ship.name]}</h3>
+                    <p class="text-gray-400">${translations[currentLanguage].firepower}: ${ship.projectileCount}x</p>
+                    <p class="text-gray-400">${translations[currentLanguage].projectileSpeed}: ${ship.projectileSpeed}</p>
                 `;
 
                 if (isOwned) {
                     if (isEquipped) {
                         const equippedText = document.createElement('p');
                         equippedText.className = "text-green-400 mt-2";
-                        equippedText.textContent = "مجهزة حاليًا";
+                        equippedText.textContent = translations[currentLanguage].equipped;
                         itemDiv.appendChild(equippedText);
                     } else {
                         const equipButton = document.createElement('button');
-                        equipButton.textContent = 'تجهيز';
+                        equipButton.textContent = translations[currentLanguage].equip;
                         equipButton.className = "equip-button mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full";
                         equipButton.addEventListener('click', () => {
                             equippedShip = shipKey;
@@ -930,7 +1014,7 @@
                     }
                 } else {
                     const buyButton = document.createElement('button');
-                    buyButton.textContent = `شراء مقابل ${ship.price}💰`;
+                    buyButton.textContent = `${translations[currentLanguage].buy} ${ship.price}💰`;
                     buyButton.className = `buy-button mt-2 font-bold py-2 px-4 rounded-full ${money >= ship.price ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : 'bg-gray-500 text-gray-300 cursor-not-allowed'}`;
                     buyButton.disabled = money < ship.price;
                     buyButton.addEventListener('click', () => {
@@ -958,7 +1042,6 @@
             isPaused = false;
             isGameRunning = true;
             pauseOverlay.classList.add('hidden');
-            shopOverlay.classList.add('hidden'); // Hide shop if it was open
             Tone.Transport.start();
             requestAnimationFrame(gameLoop);
         }
@@ -967,13 +1050,45 @@
             isPaused = false;
             isGameRunning = false;
             pauseOverlay.classList.add('hidden');
-            shopOverlay.classList.add('hidden');
             inGameUI.classList.add('hidden');
             uiOverlay.classList.remove('hidden');
             startButton.classList.remove('hidden');
             shopButton.classList.remove('hidden');
             levelSelectButton.classList.remove('hidden');
             resetGameState();
+            updateUI();
+        }
+
+        function updateUI() {
+            document.documentElement.lang = currentLanguage;
+            document.getElementById('mainTitle').textContent = translations[currentLanguage].title;
+            document.getElementById('message').textContent = translations[currentLanguage].mainMessage;
+            document.getElementById('startButton').textContent = translations[currentLanguage].startBtn;
+            document.getElementById('shopButton').textContent = translations[currentLanguage].shopBtn;
+            document.getElementById('levelSelectButton').textContent = translations[currentLanguage].levelSelectBtn;
+            document.getElementById('shopTitle').textContent = translations[currentLanguage].shopTitle;
+            document.getElementById('shopBackButton').textContent = translations[currentLanguage].back;
+            document.getElementById('levelSelectTitle').textContent = translations[currentLanguage].levelSelectTitle;
+            document.getElementById('backButton').textContent = translations[currentLanguage].back;
+            document.getElementById('pauseTitle').textContent = translations[currentLanguage].pauseTitle;
+            document.getElementById('resumeButton').textContent = translations[currentLanguage].resumeBtn;
+            document.getElementById('shopFromPauseButton').textContent = translations[currentLanguage].shopFromPause;
+            document.getElementById('exitButton').textContent = translations[currentLanguage].exitBtn;
+            document.getElementById('pauseButton').textContent = translations[currentLanguage].pauseBtn;
+            moneyDisplay.textContent = `${translations[currentLanguage].money} ${money}💰`;
+
+            if (document.getElementById('nextLevelButton')) {
+                document.getElementById('nextLevelButton').textContent = translations[currentLanguage].nextLevel;
+            }
+            if (document.getElementById('endlessModeButton')) {
+                document.getElementById('endlessModeButton').textContent = translations[currentLanguage].endlessBtn;
+            }
+            if (document.getElementById('gameOverButton')) {
+                document.getElementById('gameOverButton').textContent = translations[currentLanguage].restart;
+            }
+            
+            renderShop();
+            showLevelSelect(); // Re-render to update level text
         }
 
         function gameLoop() {
@@ -992,20 +1107,26 @@
             canvas.addEventListener('touchstart', handleInput);
             canvas.addEventListener('mousedown', handleInput);
             
+            languageSelect.addEventListener('change', (e) => {
+                currentLanguage = e.target.value;
+                pauseLanguageSelect.value = currentLanguage;
+                updateUI();
+            });
+
+            pauseLanguageSelect.addEventListener('change', (e) => {
+                currentLanguage = e.target.value;
+                languageSelect.value = currentLanguage;
+                updateUI();
+            });
+            
             startButton.addEventListener('click', () => {
                 uiOverlay.classList.add('hidden');
                 startLevel(1);
             });
             shopButton.addEventListener('click', showShop);
             shopBackButton.addEventListener('click', () => {
-                 // Check if the game is running to return to the pause menu
-                if (isGameRunning) {
-                    shopOverlay.classList.add('hidden');
-                    pauseOverlay.classList.remove('hidden');
-                } else {
-                    shopOverlay.classList.add('hidden');
-                    uiOverlay.classList.remove('hidden');
-                }
+                shopOverlay.classList.add('hidden');
+                uiOverlay.classList.remove('hidden');
             });
             levelSelectButton.addEventListener('click', showLevelSelect);
             backButton.addEventListener('click', () => {
@@ -1013,13 +1134,16 @@
                 uiOverlay.classList.remove('hidden');
                 startButton.classList.remove('hidden');
                 levelSelectButton.classList.remove('hidden');
+                shopButton.classList.remove('hidden');
+                updateUI();
             });
             
-            // New button listeners
             pauseButton.addEventListener('click', pauseGame);
             resumeButton.addEventListener('click', resumeGame);
-            inGameShopButton.addEventListener('click', showInGameShop);
             exitButton.addEventListener('click', exitGame);
+            shopFromPauseButton.addEventListener('click', showShop);
+            
+            updateUI();
         };
     </script>
 </body>
